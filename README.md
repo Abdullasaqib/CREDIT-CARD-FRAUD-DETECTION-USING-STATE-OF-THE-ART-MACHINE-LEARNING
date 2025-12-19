@@ -10,23 +10,34 @@ The system follows a modern client-server architecture with a fast asynchronous 
 
 ```mermaid
 graph TD
-    User["User"] -->|Uploads CSV| Frontend["Frontend (HTML/JS)"]
-    Frontend -->|POST /analyze| API["FastAPI Backend"]
+    %% Node Definitions
+    User["User"]
+    Frontend["Frontend (HTML/JS)"]
+    API["FastAPI Backend"]
     
     subgraph "Backend Services"
-        API -->|1. Load & Detect Target| Cleaner["Data Cleaning Service"]
-        Cleaner -->|2. Preprocessing & Encoding| Modeler["Modeling Service"]
+        Cleaner["Data Cleaning Service"]
+        Modeler["Modeling Service"]
+        TrainingSet["Balanced Training Data"]
+        XGB["XGBoost Classifier"]
+        Results["Result Generation"]
+        HighRisk["High Risk Candidates"]
         
-        Modeler -->|3. Oversampling (SMOTE/Random)| TrainingSet["Balanced Training Data"]
-        TrainingSet -->|4. Train XGBoost| XGB["XGBoost Classifier"]
-        
-        XGB -->|5. Predict Probabilities| Results["Result Generation"]
-        Results -->|6. Dynamic Thresholding| HighRisk["High Risk Candidates"]
+        API -->|1. Load & Detect Target| Cleaner
+        Cleaner -->|2. Preprocessing & Encoding| Modeler
+        Modeler -->|3. Oversampling (SMOTE/Random)| TrainingSet
+        TrainingSet -->|4. Train XGBoost| XGB
+        XGB -->|5. Predict Probabilities| Results
+        Results -->|6. Dynamic Thresholding| HighRisk
     end
     
+    %% Connections
+    User -->|Uploads CSV| Frontend
+    Frontend -->|POST /analyze| API
     HighRisk -->|JSON Response| Frontend
     Frontend -->|Visualizes| Dashboard["Interactive Dashboard"]
 ```
+
 
 ---
 
