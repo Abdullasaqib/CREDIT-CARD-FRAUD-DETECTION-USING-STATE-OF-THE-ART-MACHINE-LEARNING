@@ -1,6 +1,6 @@
-# CreditGuard: Advanced Crypto & Credit Card Fraud Detection
+# CreditGuard: Advanced Credit Card Fraud Detection
 
-**CreditGuard** is a state-of-the-art, machine-learning-powered platform designed to detect fraudulent transactions in Cryptocurrency and Credit Card datasets. It leverages **XGBoost** with **Advanced Oversampling** and **Dynamic Thresholding** to ensure high sensitivity (Recall) and precision, identifying not just suspicious transactions but also the high-risk entities behind them.
+**CreditGuard** is a state-of-the-art, machine-learning-powered platform designed to detect fraudulent transactions in Credit Card datasets. It leverages **XGBoost** with **Advanced Oversampling** and **Dynamic Thresholding** to ensure high sensitivity (Recall) and precision, identifying not just suspicious transactions but also the high-risk entities behind them.
 
 ---
 
@@ -10,29 +10,29 @@ The system follows a modern client-server architecture with a fast asynchronous 
 
 ```mermaid
 graph TD
-    User[User] -->|Uploads CSV| Frontend[Frontend (HTML/JS)]
-    Frontend -->|POST /analyze| API[FastAPI Backend]
+    User["User"] -->|Uploads CSV| Frontend["Frontend (HTML/JS)"]
+    Frontend -->|POST /analyze| API["FastAPI Backend"]
     
     subgraph "Backend Services"
-        API -->|1. Load & Detect Target| Cleaner[Data Cleaning Service]
-        Cleaner -->|2. Preprocessing & Encoding| Modeler[Modeling Service]
+        API -->|1. Load & Detect Target| Cleaner["Data Cleaning Service"]
+        Cleaner -->|2. Preprocessing & Encoding| Modeler["Modeling Service"]
         
-        Modeler -->|3. Oversampling (SMOTE/Random)| TrainingSet[Balanced Training Data]
-        TrainingSet -->|4. Train XGBoost| XGB[XGBoost Classifier]
+        Modeler -->|3. Oversampling (SMOTE/Random)| TrainingSet["Balanced Training Data"]
+        TrainingSet -->|4. Train XGBoost| XGB["XGBoost Classifier"]
         
-        XGB -->|5. Predict Probabilities| Results[Result Generation]
-        Results -->|6. Dynamic Thresholding| HighRisk[High Risk Candidates]
+        XGB -->|5. Predict Probabilities| Results["Result Generation"]
+        Results -->|6. Dynamic Thresholding| HighRisk["High Risk Candidates"]
     end
     
     HighRisk -->|JSON Response| Frontend
-    Frontend -->|Visualizes| Dashboard[Interactive Dashboard]
+    Frontend -->|Visualizes| Dashboard["Interactive Dashboard"]
 ```
 
 ---
 
 ## 🚀 Key Features
 
-*   **Universal Data Support**: Seamlessly handles diverse datasets (Credit Card `V1-V28`, Crypto `ETH/BTC`).
+*   **Universal Data Support**: Seamlessly handles diverse Credit Card datasets (e.g., standard `V1-V28` PCA features or raw transaction logs).
 *   **Auto-ML Pipeline**:
     *   **Auto-Target Detection**: Automatically identifies the label column (e.g., `Class`, `isFraud`).
     *   **Smart Cleaning**: Handles missing values and encodings without data leakage.
@@ -106,7 +106,7 @@ Credit card fraud datasets are highly imbalanced (e.g., 0.1% fraud). Standard mo
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/Abdullasaqib/CREDIT-CARD-FRAUD-DETECTION-USING-STATE-OF-THE-ART-MACHINE-LEARNING.git
-cd crypto_fraud_detection
+cd CREDIT-CARD-FRAUD-DETECTION-USING-STATE-OF-THE-ART-MACHINE-LEARNING
 ```
 
 ### 2. Create Virtual Environment
@@ -148,7 +148,7 @@ pip install -r requirements.txt
 ## 📁 Project Structure
 
 ```
-crypto_fraud_detection/
+.
 ├── app/
 │   ├── main.py              # Application Entry Point
 │   ├── api.py               # API Route Handlers
