@@ -69,8 +69,20 @@ def load_and_clean_data(file_path, target_col_input=None):
     # 2. Impute Missing Values
     # Numeric -> Mean
     numeric_cols = df.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+    # Exclude target_col from mean imputation to avoid introducing float values in classification targets
+    feature_numeric_cols = [c for c in numeric_cols if c != target_col]
+    
+    if len(feature_numeric_cols) > 0:
+        df[feature_numeric_cols] = df[feature_numeric_cols].fillna(df[feature_numeric_cols].mean())
+
+    # Handle Target Column Distinctly
+    # 1. Drop rows where Target is NaN (we can't train on them)
+    if target_col in df.columns:
+        df = df.dropna(subset=[target_col])
+        
+        # 2. Ensure Target is Integer (0/1) if it's numeric
+        if pd.api.types.is_numeric_dtype(df[target_col]):
+            df[target_col] = df[target_col].astype(int)
     
     # Categorical -> Mode (or 'Unknown')
     cat_columns = df.select_dtypes(include=['object']).columns

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoGuard | Anomaly Detection</title>
+    <title>CreditGuard | Fraud Detection</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
@@ -19,7 +19,7 @@
 
     <header>
         <div class="logo">
-            <span class="icon">◈</span> CRYPTO<span class="highlight">GUARD</span>
+            <span class="icon">💳</span> CREDIT<span class="highlight">GUARD</span>
         </div>
         <nav>
             <div class="status-indicator">SYSTEM ONLINE</div>
@@ -29,8 +29,8 @@
     <main>
         <!-- HERO SECTION: Step 1 (Upload) -->
         <section id="upload-section" class="hero-container">
-            <h1>Fraud <span class="gradient-text">Detection</span> Protocol</h1>
-            <p class="subtitle">Upload transaction datasets to initialize XGBoost Anomaly Analysis.</p>
+            <h1>Credit Card <span class="gradient-text">Fraud Analytics</span></h1>
+            <p class="subtitle">Upload credit card transaction datasets (V1-V28 features) to analyze fraud patterns.</p>
 
             <div class="upload-zone" id="drop-zone">
                 <input type="file" id="fileInput" accept=".csv" hidden>
@@ -101,7 +101,7 @@
                     <h3>
                         Fraud Distribution (Amount)
                         <span class="info-icon"
-                            data-tooltip="Visualizes the total stolen amount by Entity. Each color represents a specific Account or User ID. The largest slice shows the biggest fraudster.">?</span>
+                            data-tooltip="Visualizes the total fraudulent amount. If specific entities (Users/Cards) are not detected, this shows Top Individual Fraud Transactions.">?</span>
                     </h3>
                     <canvas id="pieChart"></canvas>
                 </div>

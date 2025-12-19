@@ -159,7 +159,7 @@ function renderDashboard(data) {
                 },
                 title: {
                     display: true,
-                    text: `Top Fraudulent ${entityType}s (by Amount)`,
+                    text: `Top High-Risk Transactions`,
                     color: '#8b9bb4',
                     font: { size: 12, weight: 'normal' },
                     padding: { bottom: 10 }

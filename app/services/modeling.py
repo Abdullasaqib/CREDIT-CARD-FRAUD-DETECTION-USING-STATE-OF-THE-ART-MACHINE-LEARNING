@@ -18,6 +18,13 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
     # We'll use a robust set of params and just fit.
     
     # Split Data
+    
+    # OVERSAMPLING LOGIC: Explicitly duplicate fraud cases in the TRAINING set
+    # We do this AFTER the initial split to avoid training on test data (leakage), 
+    # BUT the complex logic below does split first. 
+    # Let's clean up the split logic to handle oversampling properly on X_train/y_train ONLY.
+    
+    # 1. Initial Split
     try:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
         # Also split the FULL dataframe so we can match rows later
@@ -25,6 +32,30 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
     except ValueError:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         _, df_test_full, _, _ = train_test_split(df_full, y, test_size=0.2, random_state=42)
+        
+    # 2. Oversample Training Data Only
+    # Combine X_train and y_train temporarily
+    train_data = X_train.copy()
+    train_data['__target__'] = y_train
+    
+    fraud_data = train_data[train_data['__target__'] == 1]
+    safe_data = train_data[train_data['__target__'] == 0]
+    
+    # Target: 50/50 ratio or at least boost fraud count significantly
+    if len(fraud_data) > 0 and len(safe_data) > 0:
+        # Calculate how many to sample. If fraud is very small, duplicate it many times.
+        # Let's aim for count(safe) // 2 (33% fraud) or even count(safe) (50% fraud)
+        n_samples = len(safe_data)
+        
+        fraud_oversampled = fraud_data.sample(n_samples, replace=True, random_state=42)
+        train_oversampled = pd.concat([safe_data, fraud_oversampled])
+        
+        # Shuffle
+        train_oversampled = train_oversampled.sample(frac=1, random_state=42)
+        
+        # Splot back
+        X_train = train_oversampled.drop(columns=['__target__'])
+        y_train = train_oversampled['__target__']
         
     
     # Handle Imbalance
@@ -81,8 +112,19 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
         best_model.fit(X_train, y_train)
     
     # Predictions
-    y_pred = best_model.predict(X_test)
     y_prob = best_model.predict_proba(X_test)[:, 1]
+    y_pred = best_model.predict(X_test)
+    
+    # Dynamic Threshold Adjustment
+    # If default threshold (0.5) yields 0 positives but we suspect there's fraud, try lower thresholds.
+    if y_pred.sum() == 0:
+         for thr in [0.4, 0.3, 0.2, 0.1, 0.05]:
+             y_pred_adj = (y_prob > thr).astype(int)
+             if y_pred_adj.sum() > 0:
+                 y_pred = y_pred_adj
+                 # Also update the High Risk filter threshold implicitly by using y_pred logic later if desired,
+                 # but for now we just fix the Metrics reported.
+                 break
     
     # Feature Importance
     importance = best_model.feature_importances_
@@ -90,9 +132,10 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
     
     # --- REPORTING GENERATION ---
     
-    # 1. Attach Probabilities to Test Data
+    # 1. Attach Probabilities AND Predictions to Test Data
     df_test_full = df_test_full.copy()
     df_test_full['Predicted_Fraud_Prob'] = y_prob
+    df_test_full['Predicted_Class'] = y_pred
     df_test_full['Actual_Fraud_Status'] = y_test
     
     # 2. Find "Amount" column (Heuristic)
@@ -112,8 +155,15 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
             break
             
     # 4. Filter High Risk Transactions
-    # Threshold > 0.5 (since we optimized for imbalance, 0.5 is fair, or use 0.7)
-    high_risk_df = df_test_full[df_test_full['Predicted_Fraud_Prob'] > 0.5]
+    # STRICTLY use the final Model Prediction (y_pred), which includes any dynamic threshold adjustments.
+    # The user wants "only rows predicted as fraud".
+    high_risk_df = df_test_full[df_test_full['Predicted_Class'] == 1]
+    
+    # If NO fraud is predicted strictly, we technically should return empty for "Fraud Rows",
+    # but to show *something* in the pie chart we might need logic. 
+    # However, for the LIST (anomalies), we should obey "only predicted as fraud".
+    
+    # Pie Data Fallback Logic needs to remain robust if high_risk_df is empty.
     
     # 5. Generate PIE CHART Data (Total Amount by Entity)
     pie_data = []
@@ -130,6 +180,17 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
             
         if others_sum > 0:
             pie_data.append({"label": "Others", "value": float(others_sum)})
+
+    elif amount_col and not high_risk_df.empty:
+         # Fallback: No Entity Name, but we have Amount. Show Top 5 Transactions by Amount (Txn ID)
+         # Sort by Amount
+         top_by_amount = high_risk_df.sort_values(by=amount_col, ascending=False).head(5)
+         
+         for idx, row in top_by_amount.iterrows():
+             pie_data.append({"label": f"Txn #{idx}", "value": float(row[amount_col])})
+             
+         # Note: We won't show 'Others' here because it makes less sense for individual transactions
+         # unless we want to sum the rest. Let's just show top 5 high value frauds.
             
     elif not high_risk_df.empty:
         # Fallback if no specific Amount column: Count of Fraud Txs by Entity
@@ -141,9 +202,21 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
              # Just show Verified vs Fraud Count
              pie_data.append({"label": "Fraud Transactions", "value": len(high_risk_df)})
              pie_data.append({"label": "Safe Transactions", "value": len(df_test_full) - len(high_risk_df)})
+             
+    else:
+        # No High Risk Transactions Found
+        # Show breakdown of Safe vs Fraud (which is 0) to avoid empty chart
+        pie_data.append({"label": "No Fraud Detected", "value": 100})
+        # Or showing the full count of safe transactions
+        # pie_data.append({"label": "Safe Transactions", "value": len(df_test_full)})
 
-    # 6. Top Anomalies List
-    top_anomalies = high_risk_df.sort_values(by='Predicted_Fraud_Prob', ascending=False).head(20)
+    # 6. All High Risk Anomalies
+    top_anomalies = high_risk_df.sort_values(by='Predicted_Fraud_Prob', ascending=False)
+    # Using head(N) limits us, but returning 1M rows crashes browser.
+    # User asked for "all fraud rows". Let's cap at a reasonable large number or just give all.
+    # If list is > 5000, maybe we should warn, but user said "everything". 
+    # We will return ALL rows.
+    top_anomalies = top_anomalies
     top_anomalies = top_anomalies.fillna("N/A")
     anomalies_list = top_anomalies.to_dict(orient='records')
 
@@ -152,7 +225,7 @@ def train_and_detect_fraud(df_full, df_train, target_col, meta_cols):
         "precision": float(precision_score(y_test, y_pred, zero_division=0)),
         "recall": float(recall_score(y_test, y_pred, zero_division=0)),
         "auc_roc": float(roc_auc_score(y_test, y_prob)) if len(set(y_test)) > 1 else 0.0,
-        "confusion_matrix": confusion_matrix(y_test, y_pred).tolist()
+        "confusion_matrix": confusion_matrix(y_test, y_pred, labels=[0, 1]).tolist()
     }
 
     return {

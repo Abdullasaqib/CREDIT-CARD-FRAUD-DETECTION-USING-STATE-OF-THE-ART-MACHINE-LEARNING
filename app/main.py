@@ -14,4 +14,11 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+# Explicitly serve index.html on root
+from fastapi.responses import FileResponse
+@app.get("/")
+async def read_index():
+    return FileResponse("static/index.html")
+
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
