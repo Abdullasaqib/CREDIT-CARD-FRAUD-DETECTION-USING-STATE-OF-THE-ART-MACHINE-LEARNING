@@ -10,32 +10,31 @@ The system follows a modern client-server architecture with a fast asynchronous 
 
 ```mermaid
 graph TD
-    %% Node Definitions
-    User["User"]
-    Frontend["Frontend (HTML/JS)"]
-    API["FastAPI Backend"]
+    User([User])
+    Frontend[Frontend UI]
+    API[FastAPI Backend]
+    Cleaner[Data Cleaning]
+    Modeler[Feature Engineering]
+    Training[Oversampling & Training]
+    XGB[XGBoost Model]
+    Results[Prediction Logic]
+    HighRisk[Fraud Candidates]
+    Dashboard[Dashboard]
+
+    User -->|Upload CSV| Frontend
+    Frontend -->|POST /analyze| API
     
-    subgraph "Backend Services"
-        Cleaner["Data Cleaning Service"]
-        Modeler["Modeling Service"]
-        TrainingSet["Balanced Training Data"]
-        XGB["XGBoost Classifier"]
-        Results["Result Generation"]
-        HighRisk["High Risk Candidates"]
-        
-        API -->|1. Load & Detect Target| Cleaner
-        Cleaner -->|2. Preprocessing & Encoding| Modeler
-        Modeler -->|3. Oversampling (SMOTE/Random)| TrainingSet
-        TrainingSet -->|4. Train XGBoost| XGB
-        XGB -->|5. Predict Probabilities| Results
-        Results -->|6. Dynamic Thresholding| HighRisk
+    subgraph Backend_Pipeline
+        API -->|1. Load| Cleaner
+        Cleaner -->|2. Clean| Modeler
+        Modeler -->|3. Oversample| Training
+        Training -->|4. Train| XGB
+        XGB -->|5. Predict| Results
+        Results -->|6. Filter| HighRisk
     end
     
-    %% Connections
-    User -->|Uploads CSV| Frontend
-    Frontend -->|POST /analyze| API
-    HighRisk -->|JSON Response| Frontend
-    Frontend -->|Visualizes| Dashboard["Interactive Dashboard"]
+    HighRisk -->|JSON| Frontend
+    Frontend -->|Show| Dashboard
 ```
 
 
@@ -64,28 +63,26 @@ The data flows through a rigorous pipeline to ensure accuracy and robustness.
 ```mermaid
 sequenceDiagram
     participant User
-    participant UI as Frontend
-    participant API as Backend API
-    participant ML as ML Service
+    participant Frontend
+    participant API
+    participant ML
     
-    User->>UI: Uploads Dataset (CSV)
-    UI->>API: POST /analyze (File)
+    User->>Frontend: Upload CSV
+    Frontend->>API: POST /analyze
     
-    API->>ML: load_and_clean_data()
-    Note over ML: Detects Target, Drops IDs, Imputes NaNs
+    API->>ML: Clean Data
+    ML-->>ML: Detect Target
     
-    API->>ML: train_and_detect_fraud()
+    API->>ML: Train Model
+    ML-->>ML: Oversample Fraud
+    ML-->>ML: Train XGBoost
     
-    Note over ML: SPLIT -> OVERSAMPLE (Fraud x N) -> TRAIN
-    ML->>ML: Train XGBoost Model
+    ML-->>ML: Predict & Threshold
     
-    ML->>ML: Predict on Test Set
-    ML->>ML: Dynamic Threshold Check (If 0 detected, lower thr)
+    ML-->>API: Return Results
+    API-->>Frontend: JSON Data
     
-    ML-->>API: Returns Metrics, Anomalies, Charts
-    API-->>UI: JSON Response
-    
-    UI->>User: Displays Dashboard & Fraud Table
+    Frontend->>User: Show Dashboard
 ```
 
 ---
