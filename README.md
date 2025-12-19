@@ -105,7 +105,7 @@ Credit card fraud datasets are highly imbalanced (e.g., 0.1% fraud). Standard mo
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/shaikshabana0818/crypto_final_year.git
+git clone https://github.com/Abdullasaqib/CREDIT-CARD-FRAUD-DETECTION-USING-STATE-OF-THE-ART-MACHINE-LEARNING.git
 cd crypto_fraud_detection
 ```
 
